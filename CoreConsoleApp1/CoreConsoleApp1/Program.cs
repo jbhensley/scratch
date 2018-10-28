@@ -6,6 +6,15 @@ namespace CoreConsoleApp1
     {
         static void Main(string[] args)
         {
+
+            IPEndPointParser.Parse("10.13.100.12:65535");
+
+            Console.WriteLine("Hello World!");
+            Console.ReadLine();
+        }
+
+        private static void TestPathJoin()
+        {
             var path1 = "c:";
             var path2 = "temp";
             var path3 = "sub1";
@@ -19,10 +28,6 @@ namespace CoreConsoleApp1
             }
             else
                 Console.WriteLine("Join failed");
-
-
-            Console.WriteLine("Hello World!");
-            Console.ReadLine();
         }
     }
 }
