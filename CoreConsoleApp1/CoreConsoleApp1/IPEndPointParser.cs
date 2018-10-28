@@ -23,7 +23,8 @@ namespace CoreConsoleApp1
                     {
                         // We've reached the end.
                         Console.WriteLine($"Port: {port}");
-                        Console.WriteLine(epSpan.Slice(0, i).ToString());
+                        Console.WriteLine(epSpan.Slice(0, i).ToString());   // "Address" (pass to IPAddress Parse/TryParse
+                        // If we get an IPv6 address back, ensure that epSpan[i-1] == ']'
                     }
                     else if ('0' <= digit && digit <= '9')
                     {
