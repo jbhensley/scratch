@@ -8,6 +8,8 @@ namespace CoreConsoleApp1
         {
 
             IPEndPointParser.Parse("10.13.100.12:65535");
+            IPEndPointParser.Parse("65535");
+            Console.WriteLine(System.Net.IPAddress.TryParse("[2001:db8::1]", out System.Net.IPAddress address));
 
             Console.WriteLine("Hello World!");
             Console.ReadLine();
