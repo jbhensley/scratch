@@ -6,11 +6,12 @@ namespace CoreConsoleApp1
     {
         static void Main(string[] args)
         {
-
-            IPEndPointParser.Parse("10.13.100.12:65535");
-            IPEndPointParser.Parse("65535");
-            Console.WriteLine(System.Net.IPAddress.TryParse("[2001:db8::1]", out System.Net.IPAddress address));
-
+            var epSpan = "10.13.200.1:375".AsSpan();
+            System.Net.IPEndPoint endPoint;
+            Console.WriteLine(IPEndPointParser.TryParse(epSpan, out endPoint));
+            Console.WriteLine(endPoint.Address.ToString());
+            Console.WriteLine(endPoint.Port);
+            
             Console.WriteLine("Hello World!");
             Console.ReadLine();
         }
