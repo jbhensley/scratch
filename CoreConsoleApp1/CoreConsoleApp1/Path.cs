@@ -32,7 +32,12 @@ namespace CoreConsoleApp1
                 return Join(path1, path2);
 
             return JoinInternal(path1, path2, path3);
-        }    
+        }
+
+        internal static object GetTempFileName()
+        {
+            throw new NotImplementedException();
+        }
 
         public static string Join(ReadOnlySpan<char> path1, ReadOnlySpan<char> path2, ReadOnlySpan<char> path3, ReadOnlySpan<char> path4)
         {
