@@ -8,10 +8,28 @@ namespace CoreConsoleApp1
         {
             var epSpan = "[3731:54:65fe:2::a7]:65535".AsSpan();
             System.Net.IPEndPoint endPoint;
-            Console.WriteLine(IPEndPointParser.TryParse(epSpan, out endPoint));
-            Console.WriteLine(endPoint.Address.ToString());
-            Console.WriteLine(endPoint.Port);
+            if (IPEndPointParser.TryParse(epSpan, out endPoint))
+            {
+                Console.WriteLine(endPoint.Address.ToString());
+                Console.WriteLine(endPoint.Port);
+            }
+            else
+            {
+                Console.WriteLine("Not valid");
+            }
             
+
+            //if (IPEndPointParser.TryParseTratcher("[3731:54:65fe:2::1]IAmNotValid65535", out System.Net.IPEndPoint endPoint))
+            //{
+            //    Console.WriteLine(endPoint.Address.ToString());
+            //    Console.WriteLine(endPoint.Port);
+            //}
+            //else
+            //{
+            //    Console.WriteLine("Not valid");
+            //}
+
+
             Console.WriteLine("Hello World!");
             Console.ReadLine();
         }
