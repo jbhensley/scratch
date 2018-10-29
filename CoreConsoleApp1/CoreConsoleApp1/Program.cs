@@ -6,7 +6,7 @@ namespace CoreConsoleApp1
     {
         static void Main(string[] args)
         {
-            var epSpan = "10.13.200.1:375".AsSpan();
+            var epSpan = "[3731:54:65fe:2::a7]:65535".AsSpan();
             System.Net.IPEndPoint endPoint;
             Console.WriteLine(IPEndPointParser.TryParse(epSpan, out endPoint));
             Console.WriteLine(endPoint.Address.ToString());

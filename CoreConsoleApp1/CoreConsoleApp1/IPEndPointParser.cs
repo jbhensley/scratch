@@ -10,7 +10,7 @@ namespace CoreConsoleApp1
         //private const char AddressPortDelimiter = ':';
         public const int MaxPort = 0x0000FFFF;
 
-        public static bool TryParse2(ReadOnlySpan<char> epSpan, out IPEndPoint endPoint)
+        public static bool TryParse(ReadOnlySpan<char> epSpan, out IPEndPoint endPoint)
         {
             endPoint = null;
             if (epSpan != null)
@@ -43,16 +43,9 @@ namespace CoreConsoleApp1
                     if (digit == ':')
                     {
                         // Determine how far to slice into the span (pre-set to entire length)
-
-                        // For IPv4, the address portion resides directly to the left of ':'
-                        if (processAsIPv4)
+                        if (processAsIPv4 || (i > 0 && epSpan[i - 1] == ']'))
                         {
                             sliceLength = i;
-                        }
-                        // IPv6 with "]:" port sequence
-                        else if (i > 0 && epSpan[i - 1] == ']')
-                        {
-                            sliceLength = i - 1;
                         }
 
                         break;
@@ -68,19 +61,29 @@ namespace CoreConsoleApp1
                     }
                 }
 
-                // Let's see what the IP parser thinks.
+                // We've either hit the delimiter or ran out of characters. Let's see what the IP parser thinks.
                 // TODO: this can likey be optimized in core since we already know what kind of address we have
                 if (IPAddress.TryParse(epSpan.Slice(0, sliceLength), out IPAddress address))
                 {
-                    endPoint = new IPEndPoint(address, portDecimal);
-                    return true;
+                    // If we did not hit a delimiter then default to port 0
+                    if(sliceLength == epSpan.Length)
+                    {
+                        portDecimal = 0;
+                    }
+
+                    // Avoid tossing on invalid port
+                    if (portDecimal <= MaxPort)
+                    {
+                        endPoint = new IPEndPoint(address, portDecimal);
+                        return true;
+                    }
                 }
             }
 
             return false;
         }
 
-        public static bool TryParse(ReadOnlySpan<char> epSpan, out IPEndPoint endPoint)
+        public static bool TryParse2(ReadOnlySpan<char> epSpan, out IPEndPoint endPoint)
         {
             endPoint = null;
 
