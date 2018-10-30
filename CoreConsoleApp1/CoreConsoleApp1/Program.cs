@@ -8,7 +8,7 @@ namespace CoreConsoleApp1
         {
             var epSpan = "[3731:54:65fe:2::a7]:65535".AsSpan();
             System.Net.IPEndPoint endPoint;
-            if (IPEndPointParser.TryParse(epSpan, out endPoint))
+            if (IPEndPointParser.TryParse2(epSpan, out endPoint))
             {
                 Console.WriteLine(endPoint.Address.ToString());
                 Console.WriteLine(endPoint.Port);

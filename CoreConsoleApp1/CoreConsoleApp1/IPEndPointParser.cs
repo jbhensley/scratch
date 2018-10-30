@@ -7,7 +7,6 @@ namespace CoreConsoleApp1
 {
     class IPEndPointParser
     {
-        //private const char AddressPortDelimiter = ':';
         public const int MaxPort = 0x0000FFFF;
 
         public static bool TryParse(ReadOnlySpan<char> epSpan, out IPEndPoint endPoint)
@@ -39,7 +38,7 @@ namespace CoreConsoleApp1
                     {
                         // IPv6 with a port
                         if ((i > 0 && epSpan[i - 1] == ']'))
-                        {   
+                        {
                             sliceLength = i;
                         }
                         else
@@ -65,7 +64,7 @@ namespace CoreConsoleApp1
                             *  
                             *      But the first position for a dot to appear in above is pos 4
                             */
-                            
+
                             // Is this IPv4?
                             if (epSpan[0] != ':' && epSpan.Length > 4)  // Condition most likely to be false first. We hit a colon already, so we know length is at least 1
                             {
@@ -123,7 +122,7 @@ namespace CoreConsoleApp1
                     {
                         port = 0;       // Reset the port calculation
                     }
-                    else if(encounteredInvalidPortCharacter)
+                    else if (encounteredInvalidPortCharacter)
                     {
                         return false;   // Now that we know there is a port, it's valid to error upon having seen non-numeric data during port processing
                     }
@@ -140,169 +139,134 @@ namespace CoreConsoleApp1
             return false;
         }
 
-        public static bool TryParse2(ReadOnlySpan<char> epSpan, out IPEndPoint endPoint)
+        public static bool TryParse2(ReadOnlySpan<char> endPointSpan, out IPEndPoint endPoint)
         {
             endPoint = null;
+            int port;
+            IPAddress address;
 
-            if (epSpan != null)
+            // Look for the last colon.  If we don't find one, it's at best an IPv4 address without a port.
+            // We can also simplify later cases by handling the case where we find a colon at the 0th
+            // place, in which case there's either an invalid address or this is an IPv6 address without
+            // a port, and we can just parse this as an IPAddress as well.
+            int lastColonPos = endPointSpan.LastIndexOf(':');
+            if (lastColonPos <= 1)
             {
-                IPAddress address;
-                int port = 0;
-                int multiplier = 1;
-                int delimiterLocation = -1;
-
-                // We'll start at the end of the string, looking for a port number or any indication that there is not one
-                for (int i = epSpan.Length - 1; i >= 0; i--)
+                if (IPAddress.TryParse(endPointSpan, out address))
                 {
-                    char digit = epSpan[i];
-                    if (digit == ':')
-                    {
-                        if (delimiterLocation > -1)
-                        {
-                            // This block could be combined with the one below, but would require repeated checking of
-                            // encounteredPortDelimiter to determine which condition we are in.
-
-                            // We've encounterd two colons without seeing a "]:" sequence. This can only be an IPv6 address
-                            // without a port (or garbage). Note that this should work for even the shortest possible IPv6
-                            // address of "::"
-
-                            // TODO: This can probably be optimized in core since we already know which version IP address this is
-                            if (IPAddress.TryParse(epSpan, out address))
-                            {
-                                endPoint = new IPEndPoint(address, 0);
-                                return true;
-                            }
-
-                            // Garbage input
-                            return false;
-                        }
-
-                        // Question: what happens when just "]:" is passed or "[2001:db8::1]:"?
-                        if (i > 1 && epSpan[i - 1] == ']') // i > 1 because we slice i - 2 below (can't slice a negative length)
-                        {
-                            // Port is calculated as we go, so we should have a valid one by now. Otherwise fail.
-                            if (port > MaxPort)
-                            {
-                                return false;
-                            }
-
-                            // TODO: This can probably be optimized in core since we already know which version IP address this is
-                            if (IPAddress.TryParse(epSpan.Slice(0, i - 2), out address))
-                            {
-                                endPoint = new IPEndPoint(address, port);
-                                return true;
-                            }
-
-                            // Garbage input
-                            return false;
-                        }
-
-                        // Note that we've seen ':' without a preceding ']'. If we see another ':' then this is
-                        // an IPv6 address with no port (or garbage)
-                        delimiterLocation = i;
-                    }
-                    // We'll process digits until we see the port delimiter
-                    else if ('0' <= digit && digit <= '9' && delimiterLocation == -1)
-                    {
-                        // We'll avoid overflow in cases where someone passes in garbage
-                        if (port < MaxPort)
-                        {
-                            port += multiplier * (digit - '0');
-                            multiplier *= 10;
-                        }
-                    }
-                    else if (digit == '.')
-                    {
-                        // IPv4 (with or without a port)
-                        if (IPAddress.TryParse(delimiterLocation == -1 ? epSpan : epSpan.Slice(0, delimiterLocation), out address))
-                        {
-                            endPoint = new IPEndPoint(address, delimiterLocation == -1 ? 0 : port);
-                            return true;
-                        }
-
-                        return false;
-                    }
-                    // If this is a hex value (a through f or A through F) then ignore. Otherwise we've encountered garbage
-                    else if (!('a' <= digit && digit <= 'f') && !('A' <= digit && digit <= 'F'))
-                    {
-                        break;
-                    }
+                    endPoint = new IPEndPoint(address, 0);
+                    return true;
                 }
+                return false;
+            }
 
-                // Let's see what the IP parser thinks
-                if (IPAddress.TryParse(delimiterLocation == -1 ? epSpan : epSpan.Slice(0, delimiterLocation), out address))
+            // Look to see if this is an IPv6 address with a port.
+            if (endPointSpan[lastColonPos - 1] == ']')
+            {
+                if (IPAddress.TryParse(endPointSpan.Slice(0, lastColonPos), out address) &&
+                    int.TryParse(endPointSpan.Slice(lastColonPos + 1), out port))
                 {
                     endPoint = new IPEndPoint(address, port);
                     return true;
                 }
-            }
-
-            return false;
-        }
-
-        public static bool TryParseTratcher(string addressWithPort, out IPEndPoint endpoint)
-        {
-            string addressPart = null;
-            string portPart = null;
-            IPAddress address;
-            endpoint = null;
-
-            if (string.IsNullOrEmpty(addressWithPort))
-            {
                 return false;
             }
 
-            var lastColonIndex = addressWithPort.LastIndexOf(':');
-            if (lastColonIndex > 0)
+
+            // This is either an IPv6 address without a port, or it's an IPv4 address with a port.
+            // IFF it's the former, there will be at least one more semicolon.
+            int secondToLastColonPos = -1;
+            // Span does not have an overload for LastIndexOf that takes a starting position
+            for (int i = lastColonPos - 1; i <= 0; i--)
             {
-                // IPv4 with port or IPv6
-                var closingIndex = addressWithPort.LastIndexOf(']');
-                if (closingIndex > 0)
+                if(endPointSpan[i] == ':')
                 {
-                    // IPv6 with brackets
-                    addressPart = addressWithPort.Substring(1, closingIndex - 1);
-                    if (closingIndex < lastColonIndex)
-                    {
-                        // IPv6 with port [::1]:80
-                        portPart = addressWithPort.Substring(lastColonIndex + 1);
-                    }
-                }
-                else
-                {
-                    // IPv6 without port or IPv4
-                    var firstColonIndex = addressWithPort.IndexOf(':');
-                    if (firstColonIndex != lastColonIndex)
-                    {
-                        // IPv6 ::1
-                        addressPart = addressWithPort;
-                    }
-                    else
-                    {
-                        // IPv4 with port 127.0.0.1:123
-                        addressPart = addressWithPort.Substring(0, firstColonIndex);
-                        portPart = addressWithPort.Substring(firstColonIndex + 1);
-                    }
+                    secondToLastColonPos = i;
+                    break;
                 }
             }
-            else
+            if (secondToLastColonPos == -1)
             {
-                // IPv4 without port
-                addressPart = addressWithPort;
+                if (IPAddress.TryParse(endPointSpan.Slice(0, lastColonPos), out address) &&
+                    int.TryParse(endPointSpan.Slice(lastColonPos + 1), out port))
+                {
+                    endPoint = new IPEndPoint(address, port);
+                    return true;
+                }
+                return false;
             }
 
-            if (IPAddress.TryParse(addressPart, out address))
+
+            if (IPAddress.TryParse(endPointSpan, out address))
             {
-                if (portPart != null)
+                endPoint = new IPEndPoint(address, 0);
+                return true;
+            }
+            return false;
+        }
+
+        public static bool TryParse3(ReadOnlySpan<char> endPointSpan, out IPEndPoint endPoint)
+        {
+            endPoint = null;
+            int port;
+            IPAddress address;
+            int sliceLength = endPointSpan.Length;
+
+            // Look for the last colon.  If we don't find one, it's at best an IPv4 address without a port.
+            // We can also simplify later cases by handling the case where we find a colon at the 0th
+            // place, in which case there's either an invalid address or this is an IPv6 address without
+            // a port, and we can just parse this as an IPAddress as well.
+            int lastColonPos = endPointSpan.LastIndexOf(':');
+            if (lastColonPos <= 1)
+            {
+                if (IPAddress.TryParse(endPointSpan, out address))
                 {
-                    int port;
-                    if (int.TryParse(portPart, out port))
-                    {
-                        endpoint = new IPEndPoint(address, port);
-                        return true;
-                    }
-                    return false;
+                    endPoint = new IPEndPoint(address, 0);
+                    return true;
                 }
-                endpoint = new IPEndPoint(address, 0);
+                return false;
+            }
+
+            // Look to see if this is an IPv6 address with a port.
+            if (endPointSpan[lastColonPos - 1] == ']')
+            {
+                if (IPAddress.TryParse(endPointSpan.Slice(0, lastColonPos), out address) &&
+                    int.TryParse(endPointSpan.Slice(lastColonPos + 1), out port))
+                {
+                    endPoint = new IPEndPoint(address, port);
+                    return true;
+                }
+                return false;
+            }
+
+
+            // This is either an IPv6 address without a port, or it's an IPv4 address with a port.
+            // IFF it's the former, there will be at least one more semicolon.
+            int secondToLastColonPos = -1;
+            // Span does not have an overload for LastIndexOf that takes a starting position
+            for (int i = lastColonPos - 1; i <= 0; i--)
+            {
+                if (endPointSpan[i] == ':')
+                {
+                    secondToLastColonPos = i;
+                    break;
+                }
+            }
+            if (secondToLastColonPos == -1)
+            {
+                if (IPAddress.TryParse(endPointSpan.Slice(0, lastColonPos), out address) &&
+                    int.TryParse(endPointSpan.Slice(lastColonPos + 1), out port))
+                {
+                    endPoint = new IPEndPoint(address, port);
+                    return true;
+                }
+                return false;
+            }
+
+
+            if (IPAddress.TryParse(endPointSpan, out address))
+            {
+                endPoint = new IPEndPoint(address, 0);
                 return true;
             }
             return false;
